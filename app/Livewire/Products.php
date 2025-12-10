@@ -4,45 +4,42 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Product;
-use Livewire\Attributes\Title; // Fitur v3 untuk set judul halaman
-use Livewire\Attributes\Rule; // Fitur v3 untuk validasi
+use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 
 #[Title('Manajemen Produk')] 
 class Products extends Component
 {
-    // 1. Definisikan Properties
-    #[Rule('required|min:3')] 
+    // Properties dengan Validasi
+    #[Validate('required|min:3', message: 'Nama produk minimal 3 karakter')]
     public $name = '';
 
-    #[Rule('required|numeric')] 
+    #[Validate('required|numeric|min:0', message: 'Harga harus berupa angka positif')] 
     public $price = '';
 
-    public $productId = null; // Untuk menyimpan ID saat Edit
-    public $isEditMode = false; // Penanda mode Tambah atau Edit
+    public $productId = null;
+    public $isEditMode = false;
 
-    // 2. Read Data (Render)
+    // Read Data
     public function render()
     {
         return view('livewire.products', [
             'products' => Product::latest()->get()
-        ]);
+        ])->layout('layouts.app');
     }
 
-    // 3. Create Data
+    // Create Data
     public function store()
     {
-        $this->validate(); // Validasi sesuai Rule di atas
+        $validated = $this->validate();
 
-        Product::create([
-            'name' => $this->name,
-            'price' => $this->price,
-        ]);
+        Product::create($validated);
 
-        $this->reset(); // Kosongkan form
-        session()->flash('message', 'Produk berhasil ditambahkan!');
+        $this->resetForm();
+        session()->flash('message', '✅ Produk berhasil ditambahkan!');
     }
 
-    // 4. Persiapan Edit (Ambil data ke form)
+    // Prepare Edit
     public function edit($id)
     {
         $product = Product::findOrFail($id);
@@ -50,34 +47,38 @@ class Products extends Component
         $this->productId = $id;
         $this->name = $product->name;
         $this->price = $product->price;
-        $this->isEditMode = true; // Ubah mode jadi Edit
+        $this->isEditMode = true;
     }
 
-    // 5. Update Data
+    // Update Data
     public function update()
     {
-        $this->validate();
+        $validated = $this->validate();
 
         $product = Product::findOrFail($this->productId);
-        $product->update([
-            'name' => $this->name,
-            'price' => $this->price,
-        ]);
+        $product->update($validated);
 
-        $this->reset(); // Kembali ke mode awal & kosongkan form
-        session()->flash('message', 'Produk berhasil diupdate!');
+        $this->resetForm();
+        session()->flash('message', '✅ Produk berhasil diupdate!');
     }
 
-    // 6. Tombol Batal
+    // Cancel Button
     public function cancel()
     {
-        $this->reset();
+        $this->resetForm();
     }
 
-    // 7. Delete Data
+    // Delete Data
     public function delete($id)
     {
         Product::findOrFail($id)->delete();
-        session()->flash('message', 'Produk dihapus!');
+        session()->flash('message', '✅ Produk berhasil dihapus!');
+    }
+
+    // Reset Form Helper
+    private function resetForm()
+    {
+        $this->reset(['name', 'price', 'productId', 'isEditMode']);
+        $this->resetValidation();
     }
 }
